@@ -609,8 +609,24 @@
     resize(); window.addEventListener('resize', resize);
 
     var mx = .5, my = .5, mActive = false;
+    var trail = [];
+    var lastTrailX = -999, lastTrailY = -999;
     document.addEventListener('mousemove', function(e) {
       mx = e.clientX / W; my = e.clientY / H; mActive = true;
+      var dx = e.clientX - lastTrailX, dy = e.clientY - lastTrailY;
+      if (dx*dx + dy*dy > 64) { // emit every ~8px
+        lastTrailX = e.clientX; lastTrailY = e.clientY;
+        trail.push({
+          x: e.clientX, y: e.clientY,
+          vx: (Math.random()-.5)*1.2,
+          vy: (Math.random()-.5)*1.2 - .4,
+          r: Math.random()*2.5+1,
+          life: 1,
+          decay: Math.random()*.04+.03,
+          peak: isPeak()
+        });
+        if (trail.length > 120) trail.shift();
+      }
     });
 
     // Light aurora blobs in Crail tones, subtle on grey background
@@ -686,10 +702,38 @@
           }
         }
       }
+      // cursor trail
+      for (var t = trail.length - 1; t >= 0; t--) {
+        var p = trail[t];
+        p.x += p.vx; p.y += p.vy;
+        p.vy += .05; // gravity
+        p.life -= p.decay;
+        if (p.life <= 0) { trail.splice(t, 1); continue; }
+        var cr = p.peak ? '155,52,28' : '193,95,60';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba('+cr+','+( p.life * .55 )+')';
+        ctx.fill();
+      }
+
       requestAnimationFrame(draw);
     }
 
     draw();
+
+    // ── Dynamic favicon ──────────────────────────────────────────────────
+    function updateFavicon() {
+      var label = (promoActive() && !isPeak()) ? '2x' : '1x';
+      var color = (promoActive() && !isPeak()) ? '%23C15F3C' : '%238B7E75';
+      var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+        + "<rect width='32' height='32' rx='8' fill='%23EDEAE4'/>"
+        + "<text x='16' y='23' text-anchor='middle' font-size='20' font-family='Georgia,serif' fill='" + color + "'>" + label + "</text>"
+        + "</svg>";
+      var link = document.querySelector("link[rel='icon']");
+      if (link) link.href = 'data:image/svg+xml,' + svg;
+    }
+    updateFavicon();
+    setInterval(updateFavicon, 10000);
   </script>
 </body>
 </html>
