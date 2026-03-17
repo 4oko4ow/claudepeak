@@ -484,19 +484,20 @@
       if (v === slotVals[key]) return;
       slotVals[key] = v;
 
-      var old = el.querySelector('span');
-      var nw  = document.createElement('span');
+      // kick out ALL existing spans (handles rapid double-change mid-transition)
+      var outgoing = Array.prototype.slice.call(el.querySelectorAll('span'));
+      outgoing.forEach(function(s) {
+        s.style.transform = 'translateY(-105%)';
+        s.style.opacity   = '0';
+        setTimeout(function() { if (s.parentNode === el) el.removeChild(s); }, 340);
+      });
+
+      var nw = document.createElement('span');
       nw.textContent = v;
-      nw.style.cssText = 'transform:translateY(105%);opacity:0';
+      nw.style.cssText = 'transform:translateY(105%);opacity:0;transition:none';
       el.appendChild(nw);
       void nw.offsetWidth;
-      nw.style.cssText = '';          // triggers CSS transition to default (translateY(0))
-
-      if (old) {
-        old.style.transform = 'translateY(-105%)';
-        old.style.opacity   = '0';
-        setTimeout(function() { if (old.parentNode === el) el.removeChild(old); }, 340);
-      }
+      nw.style.cssText = ''; // triggers CSS transition
     }
 
     function updateDigits(ms) {
