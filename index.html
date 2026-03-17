@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude — Двойные лимиты прямо сейчас?</title>
+  <meta name="description" content="Проверь в реальном времени: у тебя сейчас 2x лимит Claude? Акция 13–28 марта 2026.">
+  <meta property="og:title" content="У меня сейчас двойные лимиты Claude?">
+  <meta property="og:description" content="Двойные лимиты вне пиковых часов. Акция до 28 марта 2026.">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Playfair Display as serif fallback for Galaxie Copernicus -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Claude brand palette - LIGHT theme */
+    :root {
+      --bg:       #EDEAE4;   /* warm grey, Cloudy-based */
+      --surface:  #F4F3EE;   /* Pampas */
+      --crail:    #C15F3C;   /* primary accent */
+      --cloudy:   #B1ADA1;   /* secondary */
+      --text:     #2A1A10;   /* dark warm brown */
+      --muted:    #8B7E75;   /* warm grey */
+      --subtle:   rgba(0,0,0,.07);
+      --border:   rgba(0,0,0,.1);
+
+      /* States */
+      --free-c:  #C15F3C;
+      --free-g:  rgba(193, 95, 60, 0.15);
+      --peak-c:  #9B3520;
+      --peak-g:  rgba(155, 53, 32, 0.15);
+    }
+
+    /* Galaxie Copernicus → Playfair Display fallback */
+    .serif {
+      font-family: 'Copernicus', 'Galaxie Copernicus', 'Playfair Display', Georgia, serif;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Watermark ── */
+    .watermark {
+      position: fixed;
+      right: -1vw; bottom: -6vh;
+      font-size: 42vw; font-weight: 900;
+      letter-spacing: -0.07em; line-height: 0.8;
+      font-family: 'Copernicus', 'Galaxie Copernicus', 'Playfair Display', Georgia, serif;
+      color: var(--crail);
+      opacity: 0.055;
+      pointer-events: none; user-select: none;
+      transition: opacity 1.4s ease;
+    }
+
+    /* ── Page grid ── */
+    .page {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 0 clamp(24px, 5vw, 64px);
+    }
+
+    /* ── Top bar ── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: clamp(24px, 4vh, 48px);
+      padding-bottom: clamp(16px, 2vh, 28px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.42em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .top-right {
+      display: flex; gap: 8px; align-items: center;
+    }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10.5px; color: var(--muted);
+      background: rgba(0,0,0,.05);
+      border: 1px solid var(--border);
+      padding: 5px 12px; border-radius: 100px;
+    }
+    .chip svg { opacity: .65; flex-shrink: 0; }
+
+    /* ── Middle: two columns on desktop ── */
+    .middle {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: clamp(32px, 6vh, 72px) 0;
+    }
+
+    /* Left: status */
+    .col-status {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Pulsing indicator */
+    .indicator {
+      position: relative;
+      width: 56px; height: 56px;
+      margin-bottom: 28px;
+    }
+
+    .ring {
+      position: absolute; border-radius: 50%;
+      top: 50%; left: 50%;
+      border: 1px solid var(--accent, var(--crail));
+      opacity: 0;
+    }
+    .r1 { width: 100%; height: 100%; animation: ro 3.2s ease-out infinite; }
+    .r2 { width: 150%; height: 150%; animation: ro 3.2s ease-out infinite 1.07s; }
+    .r3 { width: 200%; height: 200%; animation: ro 3.2s ease-out infinite 2.14s; }
+
+    @keyframes ro {
+      0%   { opacity: .5; transform: translate(-50%,-50%) scale(.75); }
+      100% { opacity: 0;  transform: translate(-50%,-50%) scale(1.05); }
+    }
+
+    .disc {
+      position: absolute; inset: 5px; border-radius: 50%;
+      background: var(--orb, var(--crail));
+      box-shadow: 0 4px 20px var(--glow, var(--free-g));
+      transition: background 1.4s ease, box-shadow 1.4s ease;
+    }
+
+    /* Big status heading - serif */
+    .status-head {
+      font-family: 'Copernicus', 'Galaxie Copernicus', 'Playfair Display', Georgia, serif;
+      font-size: clamp(40px, 5.5vw, 80px);
+      font-weight: 700;
+      letter-spacing: -0.025em; line-height: 1.05;
+      color: var(--accent, var(--crail));
+      margin-bottom: 14px;
+      transition: color 1.4s ease;
+    }
+
+    .status-body {
+      font-size: clamp(13px, 1.4vw, 15px);
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 36ch;
+    }
+
+    /* Vertical divider between columns */
+    .col-divider {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border);
+      margin: 0 clamp(32px, 5vw, 72px);
+      flex-shrink: 0;
+    }
+
+    /* Right: timer */
+    .col-timer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .timer-eyebrow {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.38em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 16px;
+    }
+
+    /* Timer digit layout - each unit in its own column */
+    .timer-body {
+      display: flex;
+      align-items: flex-end;
+      gap: 0;
+      margin-bottom: 4px;
+    }
+
+    .t-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .digit-pair {
+      display: flex;
+    }
+
+    .digit-slot {
+      position: relative;
+      overflow: hidden;
+      width: 0.58em;
+      height: 1em;
+      font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+      font-size: clamp(56px, 8vw, 96px);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      color: var(--accent, var(--crail));
+      transition: color 1.4s ease;
+    }
+
+    .digit-slot span {
+      position: absolute; left: 0; right: 0;
+      text-align: center;
+      transition: transform 0.30s cubic-bezier(.4,0,.2,1),
+                  opacity  0.30s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Unit label sits right under digit-pair, same width */
+    .unit-name {
+      font-size: 8.5px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      padding-top: 6px;
+      width: 100%;
+      opacity: .7;
+    }
+
+    /* Separator: sits at bottom of digit height */
+    .t-sep {
+      font-family: ui-monospace, "SF Mono", monospace;
+      font-size: clamp(56px, 8vw, 96px);
+      font-weight: 300;
+      color: var(--muted);
+      opacity: 0.35;
+      padding: 0 3px;
+      line-height: 1;
+      /* align with digit bottom (above unit label area) */
+      margin-bottom: calc(8.5px + 6px + 4px); /* unit-name-size + padding + breathing */
+      flex-shrink: 0;
+    }
+
+    .timer-note {
+      font-size: 11px; color: var(--muted);
+      margin-top: 10px;
+      opacity: .8;
+    }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: clamp(20px, 3.5vh, 40px);
+      padding-top: clamp(12px, 2vh, 20px);
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .bottom-chips {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+
+    .promo-text {
+      font-size: 10.5px; color: var(--muted);
+      text-align: right;
+    }
+
+    /* State: off-peak */
+    .state-free {
+      --accent: var(--free-c);
+      --glow:   var(--free-g);
+      --orb: var(--crail);
+    }
+    /* State: peak */
+    .state-peak {
+      --accent: var(--peak-c);
+      --glow:   var(--peak-g);
+      --orb: var(--peak-c);
+    }
+
+    /* Mobile: stack vertically */
+    @media (max-width: 680px) {
+      .middle         { flex-direction: column; align-items: flex-start; gap: 32px; }
+      .col-divider    { display: none; }
+      .col-timer      { width: 100%; }
+      .t-sep          { margin-bottom: calc(8.5px + 6px + 4px); }
+      .watermark      { font-size: 58vw; }
+      .top-right      { display: none; }
+      .promo-text     { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="watermark" id="watermark">2×</div>
+
+  <div class="page state-free" id="page">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <span class="top-label">Монитор лимитов Claude</span>
+      <div class="top-right">
+        <span class="chip" id="tz-chip">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="10" r="3"/>
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          </svg>
+          <span id="tz-text">—</span>
+        </span>
+        <span class="chip">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          13–28 марта 2026
+        </span>
+      </div>
+    </div>
+
+    <!-- Main two-column area -->
+    <div class="middle">
+
+      <!-- Left: status -->
+      <div class="col-status">
+        <div class="indicator">
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+          <div class="ring r3"></div>
+          <div class="disc" id="disc"></div>
+        </div>
+        <div class="status-head serif" id="status-head">Лимиты 2× активны</div>
+        <div class="status-body" id="status-body">
+          Вне пиковых часов — двойные лимиты работают автоматически
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="col-divider"></div>
+
+      <!-- Right: timer -->
+      <div class="col-timer">
+        <div class="timer-eyebrow" id="timer-eyebrow">Пиковые часы начнутся через</div>
+
+        <div class="timer-body">
+          <div class="t-unit">
+            <div class="digit-pair">
+              <div class="digit-slot" id="s-h1"><span>0</span></div>
+              <div class="digit-slot" id="s-h2"><span>0</span></div>
+            </div>
+            <div class="unit-name">часы</div>
+          </div>
+
+          <div class="t-sep">:</div>
+
+          <div class="t-unit">
+            <div class="digit-pair">
+              <div class="digit-slot" id="s-m1"><span>0</span></div>
+              <div class="digit-slot" id="s-m2"><span>0</span></div>
+            </div>
+            <div class="unit-name">мин</div>
+          </div>
+
+          <div class="t-sep">:</div>
+
+          <div class="t-unit">
+            <div class="digit-pair">
+              <div class="digit-slot" id="s-s1"><span>0</span></div>
+              <div class="digit-slot" id="s-s2"><span>0</span></div>
+            </div>
+            <div class="unit-name">сек</div>
+          </div>
+        </div>
+
+        <div class="timer-note" id="timer-note">
+          Пиковые часы сегодня: <span id="local-peak-range">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+      <div class="bottom-chips">
+        <span class="chip" id="local-peak-chip">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span id="local-peak-text">—</span>
+        </span>
+        <span class="chip">Free · Pro · Max · Team</span>
+      </div>
+      <div class="promo-text">Акция Anthropic · 13–28 марта 2026</div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Promo logic ──────────────────────────────────────────────────────
+    // Peak = 8 AM–2 PM ET weekdays = 12:00–18:00 UTC (EDT, UTC-4)
+    // Promo ends Mar 29 2026 06:59 UTC (= Mar 28 11:59 PM PT)
+
+    var PROMO_END = Date.UTC(2026, 2, 29, 6, 59, 0);
+
+    function promoActive() { return Date.now() < PROMO_END; }
+    function isPeak() {
+      if (!promoActive()) return false;
+      var d = new Date(), day = d.getUTCDay(), h = d.getUTCHours();
+      return day >= 1 && day <= 5 && h >= 12 && h < 18;
+    }
+    function isWeekend() { var d = new Date().getUTCDay(); return d === 0 || d === 6; }
+
+    function nextTransition() {
+      var now = new Date(), day = now.getUTCDay(), h = now.getUTCHours();
+      var next = new Date(now);
+      next.setUTCMilliseconds(0); next.setUTCSeconds(0);
+      if (isPeak()) {
+        next.setUTCHours(18, 0, 0, 0);
+      } else if (day === 0) {
+        next.setUTCDate(next.getUTCDate() + 1); next.setUTCHours(12, 0, 0, 0);
+      } else if (day === 6) {
+        next.setUTCDate(next.getUTCDate() + 2); next.setUTCHours(12, 0, 0, 0);
+      } else if (h < 12) {
+        next.setUTCHours(12, 0, 0, 0);
+      } else {
+        next.setUTCDate(next.getUTCDate() + (day === 5 ? 3 : 1));
+        next.setUTCHours(12, 0, 0, 0);
+      }
+      return next;
+    }
+
+    // ── Smooth digit-flip ────────────────────────────────────────────────
+
+    var slots = {
+      h1: document.getElementById('s-h1'), h2: document.getElementById('s-h2'),
+      m1: document.getElementById('s-m1'), m2: document.getElementById('s-m2'),
+      s1: document.getElementById('s-s1'), s2: document.getElementById('s-s2'),
+    };
+    var slotVals = {};
+
+    function setDigit(el, key, val) {
+      var v = String(val);
+      if (v === slotVals[key]) return;
+      slotVals[key] = v;
+
+      var old = el.querySelector('span');
+      var nw  = document.createElement('span');
+      nw.textContent = v;
+      nw.style.cssText = 'transform:translateY(105%);opacity:0';
+      el.appendChild(nw);
+      void nw.offsetWidth;
+      nw.style.cssText = '';          // triggers CSS transition to default (translateY(0))
+
+      if (old) {
+        old.style.transform = 'translateY(-105%)';
+        old.style.opacity   = '0';
+        setTimeout(function() { if (old.parentNode === el) el.removeChild(old); }, 340);
+      }
+    }
+
+    function updateDigits(ms) {
+      var t  = Math.max(0, Math.floor(ms / 1000));
+      var h  = String(Math.floor(t / 3600)).padStart(2, '0');
+      var m  = String(Math.floor((t % 3600) / 60)).padStart(2, '0');
+      var s  = String(t % 60).padStart(2, '0');
+      setDigit(slots.h1, 'h1', h[0]); setDigit(slots.h2, 'h2', h[1]);
+      setDigit(slots.m1, 'm1', m[0]); setDigit(slots.m2, 'm2', m[1]);
+      setDigit(slots.s1, 's1', s[0]); setDigit(slots.s2, 's2', s[1]);
+    }
+
+    // ── State update ─────────────────────────────────────────────────────
+
+    var page       = document.getElementById('page');
+    var watermark  = document.getElementById('watermark');
+    var statusHead = document.getElementById('status-head');
+    var statusBody = document.getElementById('status-body');
+    var timerEye   = document.getElementById('timer-eyebrow');
+    var timerNote  = document.getElementById('timer-note');
+    var lastState  = null;
+
+    function applyState() {
+      var peak = isPeak(), ended = !promoActive(), wkend = isWeekend();
+      var state = (!ended && !peak) ? 'free' : 'peak';
+
+      if (state !== lastState) {
+        lastState = state;
+        page.className = 'page state-' + state;
+
+        if (ended) {
+          watermark.textContent   = '1×';
+          statusHead.textContent  = 'Акция завершена';
+          statusBody.textContent  = 'Лимиты вернулись к норме. Спасибо, что пользовался Claude.';
+          timerEye.textContent    = 'Акция проходила';
+        } else if (peak) {
+          watermark.textContent   = '1×';
+          statusHead.textContent  = 'Пиковые часы';
+          statusBody.textContent  = 'Сейчас стандартные лимиты. Двойные вернутся после окончания пикового окна.';
+          timerEye.textContent    = 'Лимиты 2× вернутся через';
+        } else if (wkend) {
+          watermark.textContent   = '2×';
+          statusHead.textContent  = 'Двойные лимиты';
+          statusBody.textContent  = 'Выходные всегда вне пика. Двойные лимиты весь день.';
+          timerEye.textContent    = 'До начала пиковых часов';
+        } else {
+          watermark.textContent   = '2×';
+          statusHead.textContent  = 'Лимиты 2× активны';
+          statusBody.textContent  = 'Вне пиковых часов — двойные лимиты работают автоматически.';
+          timerEye.textContent    = 'Пиковые часы начнутся через';
+        }
+      }
+    }
+
+    function tick() {
+      applyState();
+      if (promoActive()) updateDigits(nextTransition() - Date.now());
+    }
+
+    // ── Local time setup ─────────────────────────────────────────────────
+
+    (function setupLocalTime() {
+      try {
+        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.getElementById('tz-text').textContent = tz;
+
+        // Peak window: 12:00–18:00 UTC, compute in local time
+        var fmtT = function(d) {
+          return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        var ps = new Date(); ps.setUTCHours(12, 0, 0, 0);
+        var pe = new Date(); pe.setUTCHours(18, 0, 0, 0);
+        var rangeStr = fmtT(ps) + '\u2013' + fmtT(pe);
+
+        document.getElementById('local-peak-range').textContent = rangeStr;
+        document.getElementById('local-peak-text').textContent  = rangeStr + ' — пиковые часы';
+
+        // If weekend, note that
+        if (isWeekend()) {
+          document.getElementById('timer-note').textContent = 'Выходные: пиковых часов нет';
+        }
+      } catch(_) {
+        document.getElementById('tz-text').textContent = 'Местный пояс';
+      }
+    })();
+
+    tick();
+    setInterval(tick, 1000);
+
+    // ── Hover tilt on status block ───────────────────────────────────────
+
+    var colStatus = document.querySelector('.col-status');
+    colStatus.style.transition = 'transform 0.1s ease';
+    colStatus.addEventListener('mousemove', function(e) {
+      var r = this.getBoundingClientRect();
+      var dx = (e.clientX - (r.left + r.width/2))  / (r.width/2);
+      var dy = (e.clientY - (r.top  + r.height/2)) / (r.height/2);
+      this.style.transform = 'perspective(1000px) rotateY('+dx*4+'deg) rotateX('+(-dy*4)+'deg)';
+    });
+    colStatus.addEventListener('mouseleave', function() { this.style.transform = ''; });
+
+    // ── Canvas: subtle light aurora ──────────────────────────────────────
+
+    var canvas = document.getElementById('bg');
+    var ctx    = canvas.getContext('2d');
+    var W = 0, H = 0;
+
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+
+    var mx = .5, my = .5, mActive = false;
+    document.addEventListener('mousemove', function(e) {
+      mx = e.clientX / W; my = e.clientY / H; mActive = true;
+    });
+
+    // Light aurora blobs in Crail tones, subtle on grey background
+    var blobs = [
+      { x:.20, y:.30, r:.55, vx: .000055, vy: .000042, w:.0008 },
+      { x:.78, y:.65, r:.48, vx:-.000050, vy:-.000062, w:.0005 },
+      { x:.48, y:.05, r:.40, vx: .000038, vy: .000055, w:.0006 },
+      { x:.22, y:.82, r:.36, vx:-.000036, vy: .000044, w:.0004 },
+      { x:.68, y:.42, r:.30, vx: .000045, vy:-.000040, w:.0003 },
+    ];
+
+    var N = 50;
+    var pts = Array.from({ length: N }, function(_, i) {
+      return {
+        x: Math.random(), y: Math.random(),
+        vx: (Math.random()-.5)*.00012, vy: (Math.random()-.5)*.00012,
+        r: Math.random()*1.2+.3,
+        a: Math.random()*.3+.06,
+        ph: Math.random()*Math.PI*2,
+        word: i%12===0 ? ['2×','claude','токены','ai','stream','context'][Math.floor(Math.random()*6)] : null,
+        fs: Math.random()*3+6,
+      };
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      var pC = isPeak() ? '155,52,28,' : '193,95,60,';
+      var maxD = Math.min(W,H)*.10;
+
+      blobs.forEach(function(b) {
+        if (mActive) { b.x += (mx-b.x)*b.w; b.y += (my-b.y)*b.w; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x<-.3||b.x>1.3) b.vx*=-1;
+        if (b.y<-.3||b.y>1.3) b.vy*=-1;
+        var gx=b.x*W, gy=b.y*H, gr=b.r*Math.min(W,H);
+        var g = ctx.createRadialGradient(gx,gy,0,gx,gy,gr);
+        g.addColorStop(0,   'rgba('+pC+'.10)');
+        g.addColorStop(.45, 'rgba('+pC+'.04)');
+        g.addColorStop(1,   'transparent');
+        ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      });
+
+      pts.forEach(function(p) {
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<-.05)p.x=1.05; if(p.x>1.05)p.x=-.05;
+        if(p.y<-.05)p.y=1.05; if(p.y>1.05)p.y=-.05;
+        p.ph+=.006;
+        var px=p.x*W, py=p.y*H, a=p.a*(.5+.5*Math.sin(p.ph));
+
+        if(p.word){
+          ctx.font='600 '+p.fs+'px ui-monospace,monospace';
+          ctx.fillStyle='rgba('+pC+(a*.35)+')';
+          ctx.fillText(p.word,px,py);
+        } else {
+          ctx.beginPath(); ctx.arc(px,py,p.r,0,Math.PI*2);
+          ctx.fillStyle='rgba('+pC+a+')'; ctx.fill();
+        }
+      });
+
+      ctx.lineWidth=.5;
+      for(var i=0;i<N;i++){
+        if(pts[i].word) continue;
+        for(var j=i+1;j<N;j++){
+          if(pts[j].word) continue;
+          var dx=(pts[i].x-pts[j].x)*W, dy=(pts[i].y-pts[j].y)*H;
+          var d=Math.sqrt(dx*dx+dy*dy);
+          if(d<maxD){
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x*W, pts[i].y*H);
+            ctx.lineTo(pts[j].x*W, pts[j].y*H);
+            ctx.strokeStyle='rgba('+pC+((1-d/maxD)*.04)+')';
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+</body>
+</html>
